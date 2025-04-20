@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Resume Results{% endblock %}
+
+{% block content %}
+<section class="results-section">
+    <div class="privacy-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5em;">
+        {% if resumes_cleared %}
+        <div class="alert alert-success" style="margin: 0; padding: 0.6em 1em; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 0.5em; font-size: 1rem;">
+            All resume data has been cleared for privacy.
+        </div>
+        {% else %}
+        <div></div>
+        {% endif %}
+        <form id="clearResumesForm" method="POST" action="{{ url_for('clear_resumes') }}">
+            <button type="submit" class="btn-danger">Clear Resumes Data</button>
+        </form>
+    </div>
+    <div class="results-header">
+        <h1>Resume Analysis Results</h1>
+        <div class="results-actions">
+            <button id="sortBtn" class="btn-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 5h10"></path>
+                    <path d="M11 9h7"></path>
+                    <path d="M11 13h4"></path>
+                    <path d="M3 17l3 3 3-3"></path>
+                    <path d="M6 18V4"></path>
+                </svg>
+                <span>Sort</span>
+            </button>
+            <button id="filterBtn" class="btn-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                </svg>
+                <span>Filter</span>
+            </button>
+            <button id="compareBtn" class="btn-primary">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                    <rect x="1" y="3" width="22" height="5"></rect>
+                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                </svg>
+                <span>Compare Selected</span>
+            </button>
+        </div>
+    </div>
+    
+    <div id="sortMenu" class="dropdown-menu">
+        <ul>
+            <li data-sort="name">Name (A-Z)</li>
+            <li data-sort="ats_score">ATS Score (High to Low)</li>
+            <li data-sort="date">Date Added (Newest First)</li>
+        </ul>
+    </div>
+    
+    <div id="filterMenu" class="dropdown-menu">
+        <div class="filter-group">
+            <h4>Job Role</h4>
+            <div class="checkbox-group">
+                <label><input type="checkbox" value="Web Developer"> Web Developer</label>
+                <label><input type="checkbox" value="Data Scientist"> Data Scientist</label>
+                <label><input type="checkbox" value="Machine Learning Engineer"> Machine Learning Engineer</label>
+                <label><input type="checkbox" value="Cloud Engineer"> Cloud Engineer</label>
+                <label><input type="checkbox" value="Software Engineer"> Software Engineer</label>
+            </div>
+        </div>
+        <div class="filter-group">
+            <h4>ATS Score</h4>
+            <div class="checkbox-group">
+                <label><input type="checkbox" value="90-100"> 90-100 (Excellent)</label>
+                <label><input type="checkbox" value="75-89"> 75-89 (Good)</label>
+                <label><input type="checkbox" value="60-74"> 60-74 (Average)</label>
+                <label><input type="checkbox" value="0-59"> Below 60 (Needs Improvement)</label>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button id="clearFiltersBtn" class="btn-secondary">Clear</button>
+            <button id="applyFiltersBtn" class="btn-primary">Apply</button>
+        </div>
+    </div>
+    
+    <div id="noResults" class="no-results">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        <h3>No Resumes Found</h3>
+        <p>Upload a resume to get started with the analysis.</p>
+        <a href="{{ url_for('upload') }}" class="btn-primary">Upload Resume</a>
+    </div>
+    
+    <div class="resume-grid" id="resumeGrid">
+        {% for resume in resumes %}
+        <div class="resume-card" data-id="{{ loop.index0 }}" data-job-role="{{ resume.job_role }}" data-ats-score="{{ resume.ats_score }}">
+            <div class="resume-card-header">
+                <div class="checkbox-container">
+                    <input type="checkbox" class="resume-checkbox" id="resume-{{ loop.index0 }}" data-id="{{ loop.index0 }}">
+                    <label for="resume-{{ loop.index0 }}"></label>
+                </div>
+                <h3 class="resume-name">{{ resume.name }}</h3>
+                <div class="job-role-badge">{{ resume.job_role }}</div>
+            </div>
+            
+            <div class="ats-score-container">
+                <div class="ats-score-label">ATS Score</div>
+                <div class="ats-score" data-score="{{ resume.ats_score }}">
+                    <div class="score-value">{{ resume.ats_score }}</div>
+                    <div class="score-bar">
+                        <div class="score-fill" style="width: {{ resume.ats_score }}%"></div>
+                    </div>
+                </div>
+                <div class="score-rating">
+                    {% if resume.ats_score >= 90 %}Excellent
+                    {% elif resume.ats_score >= 75 %}Good
+                    {% elif resume.ats_score >= 60 %}Average
+                    {% else %}Needs Improvement
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="resume-summary">
+                <div class="summary-item">
+                    <div class="summary-label">Contact</div>
+                    <div class="summary-value">{{ resume.email }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Education</div>
+                    <div class="summary-value">
+                        {% if resume.education %}
+                            {{ resume.education[0].degree }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Top Skills</div>
+                    <div class="summary-value skills-list">
+                        {% if resume.skills %}
+                            {% for skill in resume.skills[:3] %}
+                                <span class="skill-tag">{{ skill }}</span>
+                            {% endfor %}
+                            {% if resume.skills|length > 3 %}
+                                <span class="more-skills">+{{ resume.skills|length - 3 }}</span>
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="resume-suggestions">
+                <h4>Improvement Suggestions</h4>
+                <ul>
+                    {% for suggestion in resume.suggestions[:3] %}
+                        <li>{{ suggestion }}</li>
+                    {% endfor %}
+                    {% if resume.suggestions|length > 3 %}
+                        <li class="more-suggestions">+{{ resume.suggestions|length - 3 }} more suggestions...</li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <div class="resume-actions">
+                <button class="btn-icon btn-view" data-id="{{ loop.index0 }}">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>View</span>
+                </button>
+                <button class="btn-icon btn-download" data-id="{{ loop.index0 }}">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Export</span>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div id="resumeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalResumeTitle">Resume Details</h2>
+                <button class="close-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="overview">Overview</button>
+                    <button class="tab-btn" data-tab="education">Education</button>
+                    <button class="tab-btn" data-tab="experience">Experience</button>
+                    <button class="tab-btn" data-tab="skills">Skills</button>
+                    <button class="tab-btn" data-tab="suggestions">Suggestions</button>
+                </div>
+                
+                <div class="tab-content active" id="overviewTab">
+                    <div class="overview-header">
+                        <div>
+                            <h3 id="modalName"></h3>
+                            <p id="modalJobRole" class="job-role"></p>
+                        </div>
+                        <div class="modal-ats-score">
+                            <span>ATS Score</span>
+                            <div class="score-circle">
+                                <span id="modalAtsScore"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-info">
+                        <div class="info-item">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                            <span id="modalEmail"></span>
+                        </div>
+                        <div class="info-item">
+                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            <span id="modalPhone"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="overview-summary">
+                        <h4>Education Summary</h4>
+                        <div id="modalEducationSummary"></div>
+                        
+                        <h4>Experience Summary</h4>
+                        <div id="modalExperienceSummary"></div>
+                        
+                        <h4>Top Skills</h4>
+                        <div id="modalSkillsSummary" class="skills-container"></div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="educationTab">
+                    <div id="modalEducationDetails"></div>
+                </div>
+                
+                <div class="tab-content" id="experienceTab">
+                    <div id="modalExperienceDetails"></div>
+                </div>
+                
+                <div class="tab-content" id="skillsTab">
+                    <h4>Technical Skills</h4>
+                    <div id="modalSkillsDetails" class="skills-container"></div>
+                    
+                    <h4>Certifications</h4>
+                    <div id="modalCertifications"></div>
+                </div>
+                
+                <div class="tab-content" id="suggestionsTab">
+                    <h4>ATS Compatibility Analysis</h4>
+                    <div class="compatibility-chart">
+                        <div class="chart-score">
+                            <div class="score-display">
+                                <span id="modalChartScore"></span>
+                            </div>
+                            <span class="score-label">ATS Score</span>
+                        </div>
+                        <div class="chart-details">
+                            <p>This score represents how well your resume aligns with the selected job role. Higher scores indicate better compatibility with Applicant Tracking Systems.</p>
+                        </div>
+                    </div>
+                    
+                    <h4>Improvement Suggestions</h4>
+                    <ul id="modalSuggestions" class="suggestions-list"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="exportResumeBtn" class="btn-secondary">Export Data</button>
+                <button id="closeModalBtn" class="btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/results.js') }}"></script>
+{% endblock %}
